@@ -1,18 +1,17 @@
 import pandas as pd
 import dash
 from dash import dcc, html
-import plotly.express as px
 from dash.dependencies import Input, Output
+import plotly.express as px
 
-# Initialisation de l'application
+# Initialisation de l'app Dash
 app = dash.Dash(__name__)
 
-# Fonction pour charger les données depuis population.csv
+# Fonction pour charger les données
 def load_data():
-    df = pd.read_csv("population.csv", names=["datetime", "population"])
-    df = df[~df["datetime"].str.contains("datetime", na=False)]
-    df["datetime"] = pd.to_datetime(df["datetime"], errors='coerce')
-    df["population"] = pd.to_numeric(df["population"], errors='coerce')
+    df = pd.read_csv("bitcoin_prices.csv", sep=",", header=None, names=["datetime", "price"])
+    df["datetime"] = pd.to_datetime(df["datetime"], errors="coerce")
+    df["price"] = pd.to_numeric(df["price"], errors="coerce")
     df = df.dropna()
     return df
 
@@ -21,110 +20,102 @@ def daily_report():
     df = load_data()
     today = pd.Timestamp.now().date()
     daily_df = df[df["datetime"].dt.date == today]
-
     if daily_df.empty:
         return html.P("Pas de données disponibles pour aujourd'hui.")
 
-    first = daily_df.iloc[0]["population"]
-    last = daily_df.iloc[-1]["population"]
-    change = last - first
-    growth_pct = (change / first) * 100 if first != 0 else 0
+    open_price = daily_df.iloc[0]["price"]
+    close_price = daily_df.iloc[-1]["price"]
+    change = close_price - open_price
+    pct_change = (change / open_price) * 100 if open_price != 0 else 0
 
     return html.Div([
-        html.H3("📋 Rapport journalier"),
-        html.P(f"Début : {int(first):,}"),
-        html.P(f"Maintenant : {int(last):,}"),
-        html.P(f"Croissance : {int(change):,} personnes"),
-        html.P(f"Taux de croissance : {growth_pct:.6f} %"),
+        html.H3("📊 Rapport Bitcoin (aujourd'hui)"),
+        html.P(f"Prix d'ouverture : ${open_price:,.2f}"),
+        html.P(f"Prix actuel : ${close_price:,.2f}"),
+        html.P(f"Variation : {change:+,.2f} USD ({pct_change:+.2f}%)"),
     ])
 
-# Graphique
+# Graphique principal
 df = load_data()
-fig = px.line(df, x="datetime", y="population", title="📈 Évolution de la population mondiale")
+fig = px.line(df, x="datetime", y="price", title="Évolution du Bitcoin (BTC)")
 fig.update_layout(
-    paper_bgcolor='#1e1e1e',
-    plot_bgcolor='#2c2c2c',
-    font=dict(color="white"),
-    title_font=dict(size=20, color="#CCCCCC", family="Arial"),
+    paper_bgcolor="#0d0d0d",
+    plot_bgcolor="#1a1a1a",
+    font=dict(color="#00ffcc"),
+    title_font=dict(color="#00ffcc", size=20),
     title_x=0.5,
-    xaxis=dict(showgrid=True, gridcolor="#444"),
-    yaxis=dict(showgrid=True, gridcolor="#444"),
+    xaxis=dict(showgrid=True, gridcolor="#00ffcc"),
+    yaxis=dict(showgrid=True, gridcolor="#00ffcc"),
     margin=dict(t=60, l=40, r=40, b=40)
 )
 
-# Mise en page
+# Mise en page du dashboard
 app.layout = html.Div(style={
-    "fontFamily": "Arial, sans-serif",
-    "backgroundColor": "#1e1e1e",
-    "padding": "40px",
-    "color": "#ffffff"
+    "backgroundColor": "#0d0d0d",
+    "color": "#00ffcc",
+    "fontFamily": "Courier New, monospace",
+    "padding": "40px"
 }, children=[
+
+    # Logo Julie & Antoni
     html.Img(
         src="/assets/logo-JulieAntoni.png",
         style={
             "display": "block",
             "margin": "0 auto",
             "height": "120px",
-            "marginBottom": "30px",
-            "filter": "drop-shadow(0px 0px 4px #fff)"
+            "marginBottom": "20px",
+            "filter": "drop-shadow(0 0 10px #00ffcc)"
         }
     ),
 
-    html.Div("Population Tracker", style={
+    # Titre
+    html.H1("CryptoBoard: BTC Live Tracker", style={
         "textAlign": "center",
-        "fontSize": "32px",
-        "color": "#cccccc",
-        "marginBottom": "20px",
-        "fontWeight": "bold"
+        "fontSize": "36px",
+        "textShadow": "0 0 10px #00ffcc"
     }),
 
     # Compteur live
     html.Div(id="live-counter", style={
-        "fontSize": "42px",
         "textAlign": "center",
-        "color": "#00ffcc",
+        "fontSize": "42px",
+        "color": "#39ff14",
         "marginBottom": "30px",
-        "fontWeight": "bold"
+        "fontWeight": "bold",
+        "textShadow": "0 0 20px #00ffcc"
     }),
 
-    dcc.Interval(
-        id="interval-component",
-        interval=1000,  # 1000 ms = 1 seconde
-        n_intervals=0
-    ),
+    dcc.Interval(id="interval", interval=1000, n_intervals=0),
 
     # Graphique
     dcc.Graph(figure=fig, style={"marginBottom": "40px"}),
 
     # Rapport journalier
-    html.Div(
-        daily_report(),
-        style={
-            "padding": "20px",
-            "border": "1px solid #555",
-            "borderRadius": "10px",
-            "maxWidth": "500px",
-            "margin": "0 auto",
-            "backgroundColor": "#2a2a2a",
-            "boxShadow": "0 2px 8px rgba(255, 255, 255, 0.1)"
-        }
-    )
+    html.Div(daily_report(), style={
+        "backgroundColor": "#111",
+        "border": "1px solid #00ffcc",
+        "borderRadius": "10px",
+        "maxWidth": "600px",
+        "margin": "0 auto",
+        "padding": "20px",
+        "boxShadow": "0 0 20px #00ffcc"
+    })
 ])
 
-# Callback pour mettre à jour le compteur en direct
+# Callback compteur live
 @app.callback(
     Output("live-counter", "children"),
-    Input("interval-component", "n_intervals")
+    Input("interval", "n_intervals")
 )
-def update_live_counter(n):
+def update_counter(n):
     df = load_data()
     if df.empty:
-        return "Aucune donnée disponible"
+        return "⛔ Aucune donnée"
+    latest = df.sort_values("datetime").iloc[-1]["price"]
+    return f"💰 BTC/USD : ${latest:,.2f}"
 
-    latest = df.sort_values("datetime").iloc[-1]["population"]
-    return f"🌍 Population mondiale actuelle : {int(latest):,}"
-
-
-# Lancement
-if __name__ == '__main__':
+# Lancer l'app
+if __name__ == "__main__":
     app.run(debug=True)
+
