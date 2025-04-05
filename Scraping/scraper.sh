@@ -6,11 +6,12 @@ URL="https://www.okx.com/price/bitcoin-btc"
 # Fichier temporaire pour sauvegarder le HTML téléchargé
 HTML_FILE="okx_bitcoin.html"
 
-# Dossier et fichier CSV de sortie
-DATA_DIR="data"
+# Dossier de sortie et fichier CSV de sortie
+# Ici, on remonte d'un niveau (..) pour accéder au dossier Data qui se trouve dans PGL_Project
+DATA_DIR="../Data"
 OUTPUT_FILE="$DATA_DIR/bitcoin_price.csv"
 
-# Créer le dossier data s'il n'existe pas
+# Créer le dossier Data s'il n'existe pas
 mkdir -p "$DATA_DIR"
 
 # Télécharger la page en suivant les redirections et en simulant un navigateur
@@ -21,7 +22,6 @@ curl -s -L \
 echo "La page a été téléchargée dans : $HTML_FILE"
 
 # Extraction du prix depuis la div ciblée
-# On recherche la div <div class="index_price__VXAhl"> contenant le prix
 PRICE=$(sed -n 's/.*<div class="index_price__VXAhl">\([^<]*\)<\/div>.*/\1/p' "$HTML_FILE")
 PRICE=$(echo "$PRICE" | xargs)  # Suppression des espaces superflus
 
