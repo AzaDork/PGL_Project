@@ -7,7 +7,6 @@ URL="https://www.okx.com/price/bitcoin-btc"
 HTML_FILE="okx_bitcoin.html"
 
 # Dossier de sortie et fichier CSV de sortie
-# Ici, on remonte d'un niveau (..) pour accéder au dossier Data qui se trouve dans PGL_Project
 DATA_DIR="../Data"
 OUTPUT_FILE="$DATA_DIR/bitcoin_price.csv"
 
@@ -25,13 +24,19 @@ echo "La page a été téléchargée dans : $HTML_FILE"
 PRICE=$(sed -n 's/.*<div class="index_price__VXAhl">\([^<]*\)<\/div>.*/\1/p' "$HTML_FILE")
 PRICE=$(echo "$PRICE" | xargs)  # Suppression des espaces superflus
 
-echo "Prix extrait : $PRICE"
+echo "Prix extrait (brut) : $PRICE"
 
-# Récupération de la date et de l'heure d'exécution
-EXECUTION_DATE=$(date '+%Y-%m-%d %H:%M:%S')
+# Nettoyer le prix : supprimer le "$" et la virgule
+PRICE_CLEAN=$(echo "$PRICE" | tr -d '$,')
 
-# Enregistrement dans le fichier CSV au format "date,prix"
-echo "$EXECUTION_DATE,$PRICE" >> "$OUTPUT_FILE"
+echo "Prix nettoyé : $PRICE_CLEAN"
+
+# Récupération de la date et de l'heure d'exécution séparément
+DATE_PART=$(date '+%Y-%m-%d')
+TIME_PART=$(date '+%H:%M:%S')
+
+# Enregistrement dans le fichier CSV au format "date; heure; prix"
+echo "$DATE_PART; $TIME_PART; $PRICE_CLEAN" >> "$OUTPUT_FILE"
 
 # Affichage du contenu du fichier CSV
 cat "$OUTPUT_FILE"
