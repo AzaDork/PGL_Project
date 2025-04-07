@@ -146,14 +146,20 @@ def navigate_report(prev_clicks, next_clicks, current_date, all_dates):
     Output("daily-report", "children"),
     Output("prev-day", "disabled"),
     Output("next-day", "disabled"),
+    Input("interval", "n_intervals"),
     Input("report-date-store", "data"),
     State("available-dates", "data")
 )
-def update_report(selected_date, all_dates):
+def update_report(n, selected_date, all_dates):
     df = load_data()
     selected = pd.to_datetime(selected_date).date()
-    daily_df = df[df["Date"].dt.date == selected]
+    today = pd.Timestamp.now().date()
 
+    # Si ce n’est pas le jour courant, pas besoin de forcer la mise à jour
+    if selected != today and dash.callback_context.triggered[0]["prop_id"].startswith("interval"):
+        raise dash.exceptions.PreventUpdate
+
+    daily_df = df[df["Date"].dt.date == selected]
     idx = all_dates.index(selected_date)
     disable_prev = idx == 0
     disable_next = idx == len(all_dates) - 1
@@ -174,6 +180,7 @@ def update_report(selected_date, all_dates):
         html.P(f"Current Price: ${close_price:,.2f}"),
         html.P(f"Change: {change:+,.2f} USD ({pct_change:+.2f}%)"),
     ]), disable_prev, disable_next
+
 
 # Compteur live
 @app.callback(
