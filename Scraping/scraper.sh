@@ -4,10 +4,10 @@
 URL="https://www.okx.com/price/bitcoin-btc"
 
 # Fichier temporaire pour sauvegarder le HTML téléchargé
-HTML_FILE="okx_bitcoin.html"
+HTML_FILE="/home/ubuntu/PGL_Project/Scraping/okx_bitcoin.html"
 
 # Dossier de sortie et fichier CSV de sortie
-DATA_DIR="../Data"
+DATA_DIR="/home/ubuntu/PGL_Project/Data"
 OUTPUT_FILE="$DATA_DIR/bitcoin_price.csv"
 
 # Créer le dossier Data s'il n'existe pas
@@ -32,6 +32,7 @@ PRICE_CLEAN=$(echo "$PRICE" | tr -d '$,')
 echo "Prix nettoyé : $PRICE_CLEAN"
 
 # Récupération de la date et de l'heure d'exécution séparément
+export TZ="Europe/Paris"
 DATE_PART=$(date '+%Y-%m-%d')
 TIME_PART=$(date '+%H:%M:%S')
 
