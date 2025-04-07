@@ -20,6 +20,7 @@ Il inclut :
 
 ## 📁 Fichiers
 - `app.py` : le code du dashboard
+- `scraper.sh` : le code pour scraper la donnée sur le site
 - `bitcoin_prices.csv` : données de test
 - `assets/` : images et logo
 
