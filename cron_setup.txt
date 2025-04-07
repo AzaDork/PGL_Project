@@ -1,2 +1,0 @@
-# Scraper toutes les 5 minutes
-*/5 * * * * /home/ubuntu/PGL_Project/Scraping/scraper.sh >> /home/ubuntu/scraper.log 2>&1
