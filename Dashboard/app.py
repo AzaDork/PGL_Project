@@ -11,7 +11,7 @@ server = app.server
 
 # Fonction pour charger les données
 def load_data():
-    df = pd.read_csv("Data/bitcoin_price.csv", sep=";", header=None, names=["date", "time", "price"])
+    df = pd.read_csv("/home/ubuntu/PGL_Project/Data/bitcoin_price.csv", sep=";", header=None, names=["date", "time", "price"])
     df["Date"] = pd.to_datetime(df["date"] + " " + df["time"], errors="coerce")
     df["Stock Price"] = pd.to_numeric(df["price"], errors="coerce")
     df = df.dropna()
