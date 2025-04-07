@@ -157,10 +157,10 @@ def update_report(n, selected_date, all_dates):
     current_time = now.time()
     today = now.date()
 
-    # Ne rafraîchir que si on est sur aujourd’hui
     if selected != today and dash.callback_context.triggered[0]["prop_id"].startswith("interval"):
         raise dash.exceptions.PreventUpdate
 
+    df = df.sort_values("Date")
     daily_df = df[df["Date"].dt.date == selected]
     idx = all_dates.index(selected_date)
     disable_prev = idx == 0
@@ -169,44 +169,48 @@ def update_report(n, selected_date, all_dates):
     if daily_df.empty:
         return html.P(f"No data available for {selected.strftime('%B %-d, %Y')}."), disable_prev, disable_next
 
-    daily_df = daily_df.sort_values("Date")
-
-    # Prix à 8h
+    # Ouverture (08:00)
     opening_time = pd.Timestamp.combine(selected, pd.to_datetime("08:00").time())
     opening_df = daily_df[daily_df["Date"] >= opening_time]
     opening_price = opening_df.iloc[0]["Stock Price"] if not opening_df.empty else None
 
-    # Prix courant = dernière ligne de la journée sélectionnée
-    current_price = daily_df.iloc[-1]["Stock Price"]
-
-    variation_since_8am = current_price - opening_price if opening_price is not None else None
-    pct_since_8am = (variation_since_8am / opening_price * 100) if opening_price else None
-
-    # Données de clôture à 20h (si >= 20h aujourd'hui, ou si c'est un jour précédent)
-    closing_time = pd.Timestamp.combine(selected, pd.to_datetime("20:00").time())
-    show_closing = selected < today or (selected == today and current_time >= closing_time.time())
-
-    closing_df = daily_df[daily_df["Date"] >= closing_time]
-    closing_price = closing_df.iloc[0]["Stock Price"] if not closing_df.empty else None
-
-    variation_24h = closing_price - opening_price if (opening_price and closing_price) else None
-    pct_24h = (variation_24h / opening_price * 100) if (opening_price and closing_price) else None
-
-    formatted_date = selected.strftime('%B %-d, %Y')
-    report = [
-        html.H3(f"📊 Bitcoin Report for {formatted_date}"),
-        html.P(f"Opening Price (08:00): ${opening_price:,.2f}" if opening_price else "No opening price available."),
-        html.P(f"Current Price: ${current_price:,.2f}"),
-    ]
+    report = [html.H3(f"📊 Bitcoin Report for {selected.strftime('%B %-d, %Y')}")]
 
     if opening_price:
-        report.append(html.P(f"Variation since 08:00: {variation_since_8am:+,.2f} USD ({pct_since_8am:+.2f}%)"))
+        report.append(html.P(f"Opening Price (08:00): ${opening_price:,.2f}"))
 
-    if show_closing and closing_price:
-        report.append(html.P(f"Closing Price (20:00): ${closing_price:,.2f}"))
-        report.append(html.P(f"24h Variation: {variation_24h:+,.2f} USD ({pct_24h:+.2f}%)"))
-    elif selected == today:
-        report.append(html.P("⏳ Closing price and 24h variation available after 8:00 PM."))
+    if selected == today:
+        current_price = daily_df.iloc[-1]["Stock Price"]
+        report.append(html.P(f"Current Price: ${current_price:,.2f}"))
+
+        # Prix d’hier à la même heure
+        same_time_yesterday = now - pd.Timedelta(days=1)
+        past_df = df[df["Date"] <= same_time_yesterday]
+        past_same_time_df = past_df[past_df["Date"].dt.time >= same_time_yesterday.time()]
+        price_yesterday = past_same_time_df.iloc[0]["Stock Price"] if not past_same_time_df.empty else None
+
+        if price_yesterday:
+            variation_24h = current_price - price_yesterday
+            pct_24h = (variation_24h / price_yesterday) * 100
+            report.append(html.P(f"24h Variation: {variation_24h:+,.2f} USD ({pct_24h:+.2f}%)"))
+        else:
+            report.append(html.P("📉 No 24h reference price found."))
+
+        if current_time < pd.to_datetime("20:00").time():
+            report.append(html.P("⏳ Closing price available after 8:00 PM."))
+    else:
+        # Cas des jours précédents → Closing Price (20:00)
+        closing_time = pd.Timestamp.combine(selected, pd.to_datetime("20:00").time())
+        closing_df = daily_df[daily_df["Date"] >= closing_time]
+        closing_price = closing_df.iloc[0]["Stock Price"] if not closing_df.empty else None
+
+        if closing_price:
+            report.append(html.P(f"Closing Price (20:00): ${closing_price:,.2f}"))
+
+        if opening_price and closing_price:
+            variation = closing_price - opening_price
+            pct_day = (variation / opening_price) * 100
+            report.append(html.P(f"Variation in the day: {variation:+,.2f} USD ({pct_day:+.2f}%)"))
 
     return html.Div(report), disable_prev, disable_next
 
