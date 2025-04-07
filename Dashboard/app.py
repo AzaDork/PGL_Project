@@ -183,11 +183,18 @@ def update_report(n, selected_date, all_dates):
         current_price = daily_df.iloc[-1]["Stock Price"]
         report.append(html.P(f"Current Price: ${current_price:,.2f}"))
 
-        # Prix d’hier à la même heure
-        same_time_yesterday = now - pd.Timedelta(days=1)
-        past_df = df[df["Date"] <= same_time_yesterday]
-        past_same_time_df = past_df[past_df["Date"].dt.time >= same_time_yesterday.time()]
-        price_yesterday = past_same_time_df.iloc[0]["Stock Price"] if not past_same_time_df.empty else None
+        # Calcul de la variation 24h = prix d’hier à la même heure
+        target_time = now - pd.Timedelta(days=1)
+        df_yesterday = df[df["Date"].dt.date == target_time.date()]
+
+        # Trouver la donnée la plus proche de la même heure qu’aujourd’hui
+        if not df_yesterday.empty:
+            df_yesterday = df_yesterday.copy()
+            df_yesterday["delta"] = (df_yesterday["Date"] - target_time).abs()
+            closest = df_yesterday.sort_values("delta").iloc[0]
+            price_yesterday = closest["Stock Price"]
+        else:
+            price_yesterday = None
 
         if price_yesterday:
             variation_24h = current_price - price_yesterday
